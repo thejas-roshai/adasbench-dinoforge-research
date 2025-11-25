@@ -12,6 +12,78 @@ A unified pipeline for robust object discovery and segmentation that combines:
 
 ## Architecture
 
+                           +---------------+
+                           |   RAW IMAGE   |
+                           +---------------+
+                                    |
+               ---------------------+---------------------
+               |                                           |
+               v                                           v
+    +-------------------------+                 +--------------------------+
+    | YOLO (known classes)    |                 | Open-Vocab Ensemble      |
+    | - fast closed-set boxes |                 | (prompt/text conditioned)|
+    +-------------------------+                 +--------------------------+
+               |                                           |
+               |                                           |
+               |                +------------------+       |
+               |                | Grounding DINO   |-------|
+               |                +------------------+       |
+               |                          \               |
+               |                           \              |
+               |                +------------------+      |
+               |                |   Florence-2     |------|
+               |                +------------------+      |
+               |                            \             |
+               |                             \            |
+               |                +------------------+      |
+               |                |      GLIP        |------|
+               |                +------------------+      |
+               |                               \          |
+               |                                \         |
+               |                +------------------+      |
+               |                | Detectron2 OVD   |------|
+               |                +------------------+      |
+               |                                  \       |
+               |                                   \      |
+               |                +------------------+      |
+               |                |     LP-OVOD      |------|
+               |                +------------------+      |
+               |                                     \    |
+               |                                      \   |
+               |                                       \  |
+               |                                        \ |
+               |                                         \|
+               |                               +------------------+
+               |                               |   Box Fusion     |
+               |                               | (WBF / soft-NMS) |
+               |                               +------------------+
+               |                                        |
+               |                              +------------------+
+               |                              | Ensemble Boxes   |   -> 
+               |                              +------------------+
+               |                                        |
+               +------------------------+---------------+
+                                        |
+                                        v
+                              +----------------------+
+                              |  Concatenate [1]+ |
+                              |  Global NMS / WBF    |
+                              +----------+-----------+
+                                         |
+                                         v
+                               +--------------------+
+                               |   SAM 2 Refinement |
+                               | masks + tight bboxes|
+                               +----------+---------+
+                                         |
+                                         v
+                       +-----------------------------------------+
+                       | Final Detections                        |
+                       | - bbox, mask, label                     |
+                       | - fused score, provenance               |
+                       +-----------------------------------------+
+
+
 1) YOLO pass (Known set)
 - Input: Raw RGB image.
 - Output: Boxes, labels, and confidences for the predefined/known categories.
