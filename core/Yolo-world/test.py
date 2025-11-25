@@ -36,9 +36,8 @@ class_names = ("person, bicycle, car, motorcycle, airplane, bus, train, truck, b
                "hot dog, pizza, donut, cake, chair, couch, potted plant, bed, "
                "dining table, toilet, tv, laptop, mouse, remote, keyboard, "
                "cell phone, microwave, oven, toaster, sink, refrigerator, book, "
-               "clock, vase, scissors, teddy bear, hair drier, toothbrush")
+               "clock, vase, scissors, teddy bear, hair drier, toothbrush,tree,hills,bridge,road")
 
-class_names2 = ("dog, eye, tongue, ear, leash")
 
 ############################################################################################################
 
@@ -100,5 +99,5 @@ def run_image(
 
 
 
-img = run_image(runner,"/home/roshai/adasbench-dinoforge-research/images/image1.jpg")
+img = run_image(runner,"/home/roshai/adasbench-dinoforge-research/images/horses.jpg")
 sv.plot_image(img)    
