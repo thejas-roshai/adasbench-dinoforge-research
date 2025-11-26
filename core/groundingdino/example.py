@@ -1,4 +1,4 @@
-from groundingdino.util.inference import load_model, load_image, predict, annotate
+from core.groundingdino.util.inference import load_model, load_image, predict, annotate
 import cv2
 
 model = load_model("groundingdino/config/GroundingDINO_SwinT_OGC.py", "../04-06-segment-anything/weights/groundingdino_swint_ogc.pth")

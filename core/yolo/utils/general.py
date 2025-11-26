@@ -32,10 +32,11 @@ os.environ['NUMEXPR_MAX_THREADS'] = str(min(os.cpu_count(), 8))  # NumExpr max t
 
 def set_logging(rank=-1):
     logging.basicConfig(
-        format="%(message)s",
-        level=logging.INFO if rank in [-1, 0] else logging.WARN)
-
-
+    format="%(asctime)s - %(levelname)s - %(message)s - %(filename)s",
+    style="%",
+    datefmt="%Y-%m-%d %H:%M",
+    level=logging.DEBUG,
+)
 def init_seeds(seed=0):
     # Initialize random number generator (RNG) seeds
     random.seed(seed)

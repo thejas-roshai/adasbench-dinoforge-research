@@ -1,5 +1,6 @@
 import time
 from pathlib import Path
+import logging
 from .models.experimental import attempt_load
 from .utils.general import check_img_size, non_max_suppression, \
     scale_coords, set_logging,xyxy2xywh
@@ -18,6 +19,7 @@ class Predictor:
         self.weights  = weights_path
         self.image_size = 640
         self.device = select_device(device)
+        
         self.confidence_threshold = 0.1
         self.iou_threshold = 0.45
         self.model_loaded = False
@@ -30,6 +32,7 @@ class Predictor:
                 logging.critical(f"Model file not found in the path {weights_path}")
                 self.model_loaded = False
                 return None
+            
             model = attempt_load(weights_path, map_location=self.device)  # load FP32 model
             self.stride = int(model.stride.max())  # model stride
             self.image_size = check_img_size(self.image_size, s=self.stride)  # check img_size
@@ -61,7 +64,6 @@ class Predictor:
         if self.model is None:
             raise Exception(f"Model not found in path {self.weights}")
 
-        set_logging()
 
         old_img_w = old_img_h = self.image_size
         old_img_b = 1
@@ -86,35 +88,37 @@ class Predictor:
             old_img_w = img.shape[3]
             for i in range(3):
                 self.model(img, augment=False)[0]
-        result["preprocess_time"] = f"{time.time() - t0:.3f}s"
+        # result["preprocess_time"] = f"{time.time() - t0:.3f}s"
 
         # Inference
         with torch.no_grad():   
             pred = self.model(img, augment=False)[0]
-        result["prediction_time"] = f"{time.time() - t0:.3f}s"
+        # result["prediction_time"] = f"{time.time() - t0:.3f}s"
 
         pred = non_max_suppression(pred, self.confidence_threshold, self.iou_threshold)
 
-        result["filter_time"] = f"{time.time() - t0:.3f}s"
-
+        # result["filter_time"] = f"{time.time() - t0:.3f}s"
         gn = torch.tensor(original_image.shape)[[1, 0, 1, 0]]  # normalization gain whwh
+        boxes_list = []
+        confidences_list = []
+        labels_list = []
 
-
-        detections = []
         if pred is not None and len(pred):
             for det in pred:  # Loop through detections
                 if det is not None and len(det):
                     det[:, :4] = scale_coords(img.shape[2:], det[:, :4], original_image.shape).round()
 
                     for *xyxy, conf, cls in reversed(det):
-                        xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
+                        # normalized cxcywh box
+                        xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1)
 
-                        x1, y1, x2, y2 = map(int, xyxy)
-                        detections.append({"min_x":x1,"min_y": y1,"max_x": x2, "max_y": y2,"confidence": float(conf),"label": self.names[int(cls)]})
-        
-            
+                        boxes_list.append(xywh)
+                        confidences_list.append(conf)
+                        labels_list.append(self.names[int(cls)])
 
-        result["detections"] = detections
-        
-        result["total_time"] = f"{time.time() - t0:.3f}s"
-        return result
+        # Convert to torch tensors
+        boxes = torch.stack(boxes_list) if boxes_list else torch.empty((0, 4))
+        logits = torch.stack(confidences_list) if confidences_list else torch.empty(0)
+        phrases = labels_list
+
+        return boxes, logits, phrases

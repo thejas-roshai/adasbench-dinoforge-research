@@ -2,17 +2,16 @@ import argparse
 import logging
 import sys
 from copy import deepcopy
-
-sys.path.append('./')  # to run '$ python *.py' files in subdirectories
 logger = logging.getLogger(__name__)
 import torch
-from models.common import *
-from models.experimental import *
-from ..utils.autoanchor import check_anchor_order
-from ..utils.general import make_divisible, check_file, set_logging
-from ..utils.torch_utils import time_synchronized, fuse_conv_and_bn, model_info, scale_img, initialize_weights, \
+from core.yolo.models.common import *
+from core.yolo.models.experimental import *
+
+from core.yolo.utils.autoanchor import check_anchor_order
+from core.yolo.utils.general import make_divisible, check_file, set_logging
+from core.yolo.utils.torch_utils import time_synchronized, fuse_conv_and_bn, model_info, scale_img, initialize_weights, \
     select_device, copy_attr
-from ..utils.loss import SigmoidBin
+from core.yolo.utils.loss import SigmoidBin
 
 try:
     import thop  # for FLOPS computation
@@ -26,6 +25,7 @@ class Detect(nn.Module):
     end2end = False
     include_nms = False
     concat = False
+    
 
     def __init__(self, nc=80, anchors=(), ch=()):  # detection layer
         super(Detect, self).__init__()
@@ -38,7 +38,6 @@ class Detect(nn.Module):
         self.register_buffer('anchors', a)  # shape(nl,na,2)
         self.register_buffer('anchor_grid', a.clone().view(self.nl, 1, -1, 1, 1, 2))  # shape(nl,1,na,1,1,2)
         self.m = nn.ModuleList(nn.Conv2d(x, self.no * self.na, 1) for x in ch)  # output conv
-
     def forward(self, x):
         # x = x.copy()  # for profiling
         z = []  # inference output
@@ -507,6 +506,7 @@ class IBin(nn.Module):
 
 class Model(nn.Module):
     def __init__(self, cfg='yolor-csp-c.yaml', ch=3, nc=None, anchors=None):  # model, input channels, number of classes
+        
         super(Model, self).__init__()
         self.traced = False
         if isinstance(cfg, dict):
@@ -811,17 +811,15 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
         ch.append(c2)
     return nn.Sequential(*layers), sorted(save)
 
-
 if __name__ == '__main__':
+    
     parser = argparse.ArgumentParser()
     parser.add_argument('--cfg', type=str, default='yolor-csp-c.yaml', help='model.yaml')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--profile', action='store_true', help='profile model speed')
     opt = parser.parse_args()
     opt.cfg = check_file(opt.cfg)  # check file
-    set_logging()
     device = select_device(opt.device)
-
     # Create model
     model = Model(opt.cfg).to(device)
     model.train()

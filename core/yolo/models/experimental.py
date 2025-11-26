@@ -1,12 +1,14 @@
+import logging
 import numpy as np
 import random
 import torch
 import torch.nn as nn
+import sys
+import os
 
-from .common import Conv, DWConv
-from ..utils.google_utils import attempt_download
 
-
+from core.yolo.models.common import Conv, DWConv
+from core.yolo.utils.google_utils import attempt_download
 class CrossConv(nn.Module):
     # Cross Convolution Downsample
     def __init__(self, c1, c2, k=3, s=1, g=1, e=1.0, shortcut=False):
@@ -246,13 +248,19 @@ class End2End(nn.Module):
 
 def attempt_load(weights, map_location=None):
     # Loads an ensemble of models weights=[a,b,c] or a single model weights=[a] or weights=a
+    from core.yolo import models as new_models
+    sys.modules['models'] = new_models
     model = Ensemble()
+
     for w in weights if isinstance(weights, list) else [weights]:
         # attempt_download(w)
+        
         ckpt = torch.load(w, map_location=map_location,weights_only=False)  # load
+       
         model.append(ckpt['ema' if ckpt.get('ema') else 'model'].float().fuse().eval())  # FP32 model
     
     # Compatibility updates
+    
     for m in model.modules():
         if type(m) in [nn.Hardswish, nn.LeakyReLU, nn.ReLU, nn.ReLU6, nn.SiLU]:
             m.inplace = True  # pytorch 1.7.0 compatibility
